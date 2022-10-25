@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Thu Oct 20 15:23:50 2022
-
-@author: euanmacfarlane
+@author: robert jack
 """
 
 import numpy as np
-import scipy.io.wavfile as wavfile
+import scipy.signal as signal
 import matplotlib.pyplot as plt
-import collections
+
 
 
 data = np.loadtxt( 'robert_ecg.dat' )
@@ -21,6 +18,7 @@ second = data[:,2]   #channel we selected
 third =data[:,3]
 
 ecg_dat = data[:,2]
+smaller_sample = ecg_dat[0:2001]
 
 fs = 1000 #sampling frequency [Hz]
 Ts = 1/fs
@@ -61,37 +59,35 @@ class FIR_filter:
        # self.buffer = [0]*self.num_taps #creates scalar array 
         self.buffer = np.zeros(self.num_taps)
 
-    def dofilter(self,signal_to_filter):  
-        self.buffer = signal_to_filter   #why does it need the [0]? initially it had [0]
-        self.buffer = np.roll(self.buffer,1)
+    def dofilter(self,ecgsig_val):  
+        self.buffer[0] = ecgsig_val   #why does it need the [0]? initially it had [0]
     
-        arr_length1 =  self.num_taps
-        
-        print('self.num_taps is this length: %i' %arr_length1)
-        arr_length2 =  len(self.buffer)
-        
-        print('self.buffer is this length: %i' %arr_length2)
-        
-  
-        filtered_ecg = 0
-        for i in range(self.num_taps): #I tried replacing self.num_taps with a smaller value
-             filtered_ecg += self.buffer[i]*self.coefficients[i]  #y(n) = x(n) * h(n)
-        return filtered_ecg
+          #y(n) = x(n) * h(n)
+        filtered_ecgsig = np.zeros(self.num_taps)
+        for n in range(self.num_taps): 
+             filtered_ecgsig += self.buffer[n]*self.coefficients[n]  #y(n) = x(n) * h(n)
+             self.buffer = np.roll(self.buffer,1)
+        return filtered_ecgsig
+            
+        #need to make this realtime and feed data (ecgsig_val), sample by sample into the function   
+        #also, why is the length of the buffer not equal to the length of the taps?
+         
+            
     
-    #self.filtered_ecg = np.inner(self.buffer,self.coefficients) #np.inner calculates the product of 2 arrays 
-       # arr_length3 =  len(self.filtered_ecg)
-        #print('self.filtered_ecg is this length: %i' %arr_length3)
-       # return self.filtered_ecg 
-    
-    ##I am confused for plotting as the fir function returns a value right? 
-    #I surely dont do this large filtering opertation for each value in the output array right?
     
 ######REMEMBER TO ADD IN HIGHPASS FILTERING TO REMOVE BASELINE WANDER    
-
-using_FIR = FIR_filter(remove_50Hz) #instantiating the class with impulse response to remove 50Hz
-filt_ecg = using_FIR.dofilter(ecg_dat)
+#filt_ecg = np.zeros(len(smaller_sample))
+filt_ecg = []
+for n in range(len(smaller_sample)):
+    using_FIR = FIR_filter(remove_50Hz) #instantiating the class with impulse response to remove 50Hz
+    y = using_FIR.dofilter(smaller_sample[n])
+    filt_ecg[n] = y
+    
+    print(n)
+    
+    
 #-------------------------------------
-
+scipy_filtered = signal.lfilter(remove_50Hz,1,ecg_dat)
 
 #plt.plot(time1, second)
 #plt.plot(filterDesign() # removed 50Hz
@@ -126,4 +122,13 @@ plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
 plt.show()
- 
+
+fig4 = plt.figure(4)
+plt.plot(scipy_filtered)
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage')
+plt.title('Scipy Filtered ECG')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+plt.show()
