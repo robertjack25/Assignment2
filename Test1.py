@@ -65,12 +65,11 @@ class FIR_filter:
           #y(n) = x(n) * h(n)
         filtered_ecgsig = np.zeros(self.num_taps)
         for n in range(self.num_taps): 
-             filtered_ecgsig += self.buffer[n]*self.coefficients[n]  #y(n) = x(n) * h(n)
+             filtered_ecgsig += self.buffer[n]*self.coefficients[n]  #y(n) = sum(x(n) * h(n))
              self.buffer = np.roll(self.buffer,1)
         return filtered_ecgsig
             
         #need to make this realtime and feed data (ecgsig_val), sample by sample into the function   
-        #also, why is the length of the buffer not equal to the length of the taps?
          
             
     
