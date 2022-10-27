@@ -18,7 +18,7 @@ second = data[:,2]   #channel we selected
 third =data[:,3]
 
 ecg_dat = data[:,2]
-smaller_sample = ecg_dat[0:2001]
+smaller_sample = ecg_dat[0:1001]
 
 fs = 1000 #sampling frequency [Hz]
 Ts = 1/fs
@@ -28,7 +28,7 @@ for i in range(len(time)):
 
 #freq res = fs/M
 
-def filterDesign (fs, f1, f2, M):   #this function creates the bandstop impulse response, h
+def CreateImpulseResponse (fs, f1, f2, M):   #this function creates the bandstop impulse response, h
     
     k1 = int(f1/fs * M)
     k2 = int(f2/fs * M)
@@ -43,50 +43,52 @@ def filterDesign (fs, f1, f2, M):   #this function creates the bandstop impulse 
     h = h*np.hamming(M)
     return h
 
-##for removing the DC do we just remove X[0]?
-
-remove_50Hz = filterDesign(1000, 45, 55, 1000)    
-arr_length =  len(remove_50Hz)
-print('It is: %i' %arr_length)
-
-#letter = 'original'
-#fs,audio_dat = wavfile.read('%s.wav' %letter)
 
 class FIR_filter:
+    
     def __init__(self,coeff_vals):    #coeff_vals here is the returned impulse response from filter design
         self.num_taps = len(coeff_vals)
         self.coefficients = coeff_vals
-       # self.buffer = [0]*self.num_taps #creates scalar array 
         self.buffer = np.zeros(self.num_taps)
+        self.index = 0
+        self.end_index = 
+
+    def ValInBuffer(self,ecgsig_val):
+        self.buffer[self.index] = ecgsig_val
+        self.index += self.num_taps
+     #   self.index += 1
+    
 
     def dofilter(self,ecgsig_val):  
         self.buffer[0] = ecgsig_val   #why does it need the [0]? initially it had [0]
-    
-          #y(n) = x(n) * h(n)
-        filtered_ecgsig = np.zeros(self.num_taps)
-        for n in range(self.num_taps): 
-             filtered_ecgsig += self.buffer[n]*self.coefficients[n]  #y(n) = sum(x(n) * h(n))
-             self.buffer = np.roll(self.buffer,1)
-        return filtered_ecgsig
+        output = 0
+        
+        while(self.buffer[0] >= )
+         
+     
             
-        #need to make this realtime and feed data (ecgsig_val), sample by sample into the function   
+        
          
             
-    
+##for removing the DC do we just remove X[0]?
+
+remove_50Hz = CreateImpulseResponse(1000, 45, 55, 1000)    
+arr_length =  len(remove_50Hz)
+print('It is: %i' %arr_length)    
     
 ######REMEMBER TO ADD IN HIGHPASS FILTERING TO REMOVE BASELINE WANDER    
 #filt_ecg = np.zeros(len(smaller_sample))
-filt_ecg = []
-for n in range(len(smaller_sample)):
+filt_ecg = np.zeros(len(ecg_dat))
+for n in range(len(ecg_dat)):
     using_FIR = FIR_filter(remove_50Hz) #instantiating the class with impulse response to remove 50Hz
-    y = using_FIR.dofilter(smaller_sample[n])
-    filt_ecg[n] = y
+    y = using_FIR.dofilter(ecg_dat[n])
+    filt_ecg[n:n+1] = y
     
     print(n)
     
     
 #-------------------------------------
-scipy_filtered = signal.lfilter(remove_50Hz,1,ecg_dat)
+scipy_filtered = signal.lfilter(remove_50Hz,1,ecg_dat) #h,1,input
 
 #plt.plot(time1, second)
 #plt.plot(filterDesign() # removed 50Hz
@@ -100,6 +102,7 @@ plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
 plt.show() 
+fig1.savefig('original_ecg.pdf', format = 'pdf')
 
 fig2 = plt.figure(2)
 plt.plot(remove_50Hz)
@@ -131,3 +134,4 @@ plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
 plt.show()
+fig4.savefig('Scipy_filtered.pdf' , format = 'pdf')
