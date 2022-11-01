@@ -4,7 +4,6 @@ Created on Thu Oct 20 15:23:50 2022
 """
 
 import numpy as np
-import scipy.signal as signal
 import matplotlib.pyplot as plt
 
 
@@ -51,7 +50,7 @@ class FIRfilter:
         output_e = signal - remover
         self.coefficients = np.add(self.coefficients,(output_e * learningRate * self.buffer))
         return output_e
-        
+
 
 data = np.loadtxt( 'robert_ecg.dat' )
 
@@ -97,66 +96,47 @@ for n in range(len(ecg_dat)):
     lms_filt_ecg[n] = using_FIR_for_lms.doFilterAdaptive(lms_filt_ecg[n], inp_noise[n], mu)
 #cascading the lms filter to remove 50Hz and 210 Hz noise found from frequency spectrum 
 
+#Creating the match filter
+template = filt_ecg[1350:1500]
+template_coeff = template[::-1]   
 
+matchedFiltering = FIRfilter(template_coeff)
+matchedFiltered = np.zeros(len(filt_ecg))
+for i in range(len(filt_ecg)):
+    matchedFiltered[i] = matchedFiltering.dofilter(filt_ecg[i])
 
+matchedFiltered = matchedFiltered * matchedFiltered
+
+peak = 0
+last_peak = 0
+beat_count = 0
+inversebeatTime_array = np.zeros(len(filt_ecg))
+for i in range(len(matchedFiltered)):
+    if (matchedFiltered[i] >= 5) and (i - last_peak > (100*Ts)):
+        beat_count += 1
+        peak = i*Ts
+        beatTime = peak - last_peak
+        inverseBeatTime = 1/beatTime
+        last_peak = peak
+        inversebeatTime_array[i] = inverseBeatTime 
 
 
 
 #################################PLOTTING####################################
     
-scipy_filtered = signal.lfilter(impulse_response,1,ecg_dat) #h,1,input
 
 fig1 = plt.figure(1)
 plt.plot(faxis, abs(np.fft.fft(ecg_dat)))
 plt.xlim(0,fs/2)
 plt.xlabel('Frequency(Hz)')
-plt.ylabel('Voltage (V)')
+plt.ylabel('')
 plt.title('Initial ECG data')
 plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
-fig1.savefig('original_ecg.pdf', format = 'pdf')
+fig1.savefig('original_ecg_fft.pdf', format = 'pdf')
 
 fig2 = plt.figure(2)
-plt.plot(impulse_response)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Impulse Response')
-plt.grid(which='major', color='black', linewidth=0.8)
-plt.grid(which='minor', color='black', linewidth=0.5)
-plt.minorticks_on()
- 
-
-fig3 = plt.figure(3)
-plt.plot(taxis, scipy_filtered)
-plt.xlabel('Time (s)')
-plt.ylabel('Voltage (V)')
-plt.title('Filtered ECG')
-plt.grid(which='major', color='black', linewidth=0.8)
-plt.grid(which='minor', color='black', linewidth=0.5)
-plt.minorticks_on()
-
-fig4 = plt.figure(4)
-plt.plot(taxis, filt_ecg)
-plt.xlabel('Time (s)')
-plt.ylabel('Voltage (V)')
-plt.title('Scipy Filtered ECG, using taxis')
-plt.grid(which='major', color='black', linewidth=0.8)
-plt.grid(which='minor', color='black', linewidth=0.5)
-plt.minorticks_on()
-fig4.savefig('Scipy_filtered.pdf' , format = 'pdf')
-
-fig5 = plt.figure(5)
-plt.plot(X)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Bandstop')
-plt.grid(which='major', color='black', linewidth=0.8)
-plt.grid(which='minor', color='black', linewidth=0.5)
-plt.minorticks_on()
-fig5.savefig('Bandstop.pdf' , format = 'pdf')
-
-fig6 = plt.figure(6)
 plt.plot(taxis, ecg_dat)
 plt.xlabel('Time (s)')
 plt.ylabel('Voltage (V)')
@@ -164,10 +144,52 @@ plt.title('Initial ECG data')
 plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
-fig1.savefig('original_ecg.pdf', format = 'pdf')
+fig2.savefig('original_ecg.pdf', format = 'pdf')
+
+fig3 = plt.figure(3)
+plt.plot(impulse_response)
+plt.xlabel('Time (s)')
+plt.ylabel('')
+plt.title('Impulse Response')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig3.savefig('impulse_response.pdf' , format = 'pdf')
+
+fig4 = plt.figure(4)
+plt.plot(X)
+plt.xlabel('Time (s)')
+plt.ylabel('')
+plt.title('Bandstop')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig4.savefig('Bandstop.pdf' , format = 'pdf')
+
+fig5 = plt.figure(5)
+plt.plot(taxis, filt_ecg)
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage (V)')
+plt.title('Filtered ECG data')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig5.savefig('ecg_filtered.pdf' , format = 'pdf')
+
+fig6 = plt.figure(6)
+plt.plot(faxis, abs(np.fft.fft(filt_ecg)))
+plt.xlim(0,fs/2)
+plt.xlabel('Frequency(Hz)')
+plt.ylabel('')
+plt.title('Filtered ECG data FFT')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig6.savefig('ecg_filtered_fft.pdf', format = 'pdf')
+
 
 fig7 = plt.figure(7)
-plt.plot(taxis, lms_filt_ecg) #remember to swap back for lms_filt_ecg   ,taxis, ####ref noise gen isnt working!, maybe just put inside final for loop to solve
+plt.plot(taxis, lms_filt_ecg) 
 plt.xlabel('Time (s)')
 plt.ylabel('Voltage (V)')
 plt.title('lms Filtered ECG')
@@ -177,8 +199,9 @@ plt.minorticks_on()
 fig7.savefig('lms_filt_ecg.pdf' , format = 'pdf')
 
 fig8 = plt.figure(8)
-plt.plot(faxis, abs(np.fft.fft(lms_filt_ecg))) #remember to swap back for lms_filt_ecg   ,taxis, ####ref noise gen isnt working!, maybe just put inside final for loop to solve
+plt.plot(faxis, abs(np.fft.fft(lms_filt_ecg))) 
 plt.xlabel('Frequency (Hz)')
+plt.xlim(0,fs/2)
 plt.ylabel('')
 plt.title('lms Filtered ECG FFT')
 plt.grid(which='major', color='black', linewidth=0.8)
@@ -187,14 +210,36 @@ plt.minorticks_on()
 fig8.savefig('lms_fft_ecg.pdf' , format = 'pdf')
 
 fig9 = plt.figure(9)
-plt.plot(faxis, abs(np.fft.fft(filt_ecg))) #remember to swap back for lms_filt_ecg   ,taxis, ####ref noise gen isnt working!, maybe just put inside final for loop to solve
+plt.plot(taxis, matchedFiltered) 
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage Squared (V**2)')
+plt.title('Match Filtered ECG')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig9.savefig('matchFiltered.pdf' , format = 'pdf')
+
+fig10 = plt.figure(10)
+plt.plot(faxis, abs(np.fft.fft(matchedFiltered))) 
 plt.xlabel('Frequency (Hz)')
+plt.xlim(0,fs/2)
 plt.ylabel('')
 plt.title('FIR Filtered ECG FFT')
 plt.grid(which='major', color='black', linewidth=0.8)
 plt.grid(which='minor', color='black', linewidth=0.5)
 plt.minorticks_on()
-fig9.savefig('firfilt_fft_ecg.pdf' , format = 'pdf')
+fig10.savefig('matchFiltered_fft_ecg.pdf' , format = 'pdf')
+
+fig11 = plt.figure(11)
+plt.plot(taxis, inversebeatTime_array) 
+plt.xlabel('Time (s)')
+plt.ylabel('')
+plt.title('Inverse Beat Time ECG')
+plt.grid(which='major', color='black', linewidth=0.8)
+plt.grid(which='minor', color='black', linewidth=0.5)
+plt.minorticks_on()
+fig11.savefig('inverseBeatTime.pdf' , format = 'pdf')
+
 
 plt.show()
       
