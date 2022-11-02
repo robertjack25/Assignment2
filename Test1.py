@@ -36,6 +36,7 @@ class FIRfilter:
         self.num_taps = len(coeff_vals)
         self.coefficients = coeff_vals
         self.buffer = np.zeros(self.num_taps)
+        self.delta_h = np.zeros(self.num_taps)
 
     def dofilter(self,ecgsig_val):
         self.buffer = np.roll(self.buffer,1)
@@ -46,8 +47,8 @@ class FIRfilter:
     def doFilterAdaptive(self,signal,noise,learningRate):  #signal is the ecg data(the noisy signal)
         remover = self.dofilter(noise)
         output_e = signal - remover
-        delta_h = output_e * learningRate * self.buffer
-        self.coefficients = np.add(self.coefficients,delta_h)
+        self.delta_h = output_e * learningRate * self.buffer
+        self.coefficients = np.add(self.coefficients,self.delta_h)
         return output_e
 
 
